@@ -152,6 +152,7 @@ public class PepGenomeTool {
             Utils.printHelpAndExitProgram(options, true, GENOME_MAPPER_EXIT_TOO_FEW_ARGS);
         }
 
+        
 
         if (cmd.hasOption(ARG_INPUT_FORMAT))
             fileFormat = INPUT_FILE_FORMAT.findByString(cmd.getOptionValue(ARG_INPUT_FORMAT));
