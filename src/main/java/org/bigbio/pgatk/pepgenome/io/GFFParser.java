@@ -179,13 +179,14 @@ public class GFFParser {
                 // Manually change gene coords.
 
                 // Moved CDS block here.
-                GenomeCoordinates genomeCoordinates = Utils.extract_coordinates_from_gtf_line(tokens); // Chris - Should be fine
+                GenomeCoordinates genomeCoordinates = Utils.extract_coordinates_from_gtf_line(tokens);
                 // TODO Next point of focus *****************
+                // Implement mechanism to check which exons are annotated based on protein sequence metadata
                 // Chris: Change genCoord based on JAMES's offset from translation (e.g.
                 // exon completely untranslated (James offset longer than exon) -> remove -> nothing else required to do.
                 // exon partially translated (James offset shorter than exon) -> subtract offset from genCoord.start / add to genCoord.end (depending on strand).
                 // change offset -> James offset - length of exon or length of untranslated part of exon (ie until James offset is 0).
-                // This means change the offset as parts are removed and subtracted from the  previous exons.  Therefore J's offset will need to be updated.
+                // This means change the offset as parts are removed and subtracted from the  previous exons.  Therefore J's offset will need to be updated upon analysing a given exon.
 
                 genomeCoordinates.setTranscriptid(transcriptId);
                 String tmp_exonID = extract_exon_id(line);
@@ -401,22 +402,22 @@ public class GFFParser {
          */
 
 
-    //TODO Edited -looks for the text specified GENEPATTERN and returns the ID.
+    //TODO Edited -looks for the text specified GENEPATTERN and returns the ID. (Appears Working)
     public static String extract_gene_id(String gtfGeneLine) {
         return extract_id(gtfGeneLine, GFFIDPATTERN);
     }
 
-    //TODO Edited -looks for the text specified in TRNASCRIPTPATTERN and returns the ID.
+    //TODO Edited -looks for the text specified in TRNASCRIPTPATTERN and returns the ID. (Appears Working)
     public static String extract_transcript_id(String gtfGeneLine) {
         return extract_id(gtfGeneLine, GFFIDPATTERN);
     }
 
-    //TODO Edited -looks for the text specified in EXONPATTERN and returns the ID.
+    //TODO Edited -looks for the text specified in EXONPATTERN and returns the ID. (Appears Working)
     public static String extract_exon_id(String gtfGeneLine) {
         return extract_id(gtfGeneLine, GFFIDPATTERN);
     }
 
-    // TODO Edited - General extract_id method.  Other extract ID methods will now call this.
+    // TODO Edited - General extract_id method.  Other extract ID methods will now call this. (Appears Working)
     public static String extract_id(String gtfGeneLine, Pattern pattern) {
         String value = "";
         Matcher matcher = pattern.matcher(gtfGeneLine);

@@ -272,12 +272,40 @@ public class GTFParser {
         return extract_id(gtfGeneLine, EXONPATTERN);
     }
 
-    // TODO Chris suggestion - General extract_id method.  Other extract ID methods will now call this.
+    // TODO General extract_id method.  Other extract ID methods will now call this. (Appears Working)
     public static String extract_id(String gtfGeneLine, Pattern pattern) {
         String value = "";
         Matcher matcher = pattern.matcher(gtfGeneLine);
         if (matcher.find()) {
             value = matcher.group(1);
+        }
+        return value;
+    }
+
+
+    // TODO Edited Extract_type method - moved into the GTF parser, not relevant to GFF.
+    // after tokenizing the gene line these functions can be used to extract information.
+    // extracts the gene type (protein_coding,...)
+    public static String extract_type(List<String> tokens) {
+        String value = "";
+        if (tokens.size() >= 9) {
+            List<String> res = GeneEntry.extract_by_tag("gene_type", tokens.get(8));
+            if (res.size() == 1) {
+                value = res.get(0);
+            }
+        }
+        return value;
+    }
+
+    // TODO Edited extract_status method - moved into the GTF parser, not relevant to GFF.
+    //extracts the gene status (KNOWN,...)
+    public static String extract_status(List<String> tokens) {
+        String value = "";
+        if (tokens.size() >= 9) {
+            List<String> res = GeneEntry.extract_by_tag("gene_status", tokens.get(8));
+            if (res.size() == 1) {
+                value = res.get(0);
+            }
         }
         return value;
     }

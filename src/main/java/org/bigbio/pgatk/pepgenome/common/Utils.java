@@ -333,7 +333,6 @@ public class Utils {
         return same;
     }
 
-    // TODO: Note - Compatible with GFF
     //given a tokenized string this function will generate the resulting genomic coordinates.
     public static GenomeCoordinates extract_coordinates_from_gtf_line(List<String> tokens) {
         GenomeCoordinates coord = new GenomeCoordinates();

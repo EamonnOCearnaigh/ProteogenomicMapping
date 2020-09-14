@@ -43,7 +43,6 @@ public class MappedPeptides implements Serializable {
         this.m_tissueindex = 0;
     }
 
-    // TODO Note - add_gene_from_gtf (Compatible)
     //adds a new gene from a gtfline.
     public final Assembly add_gene_from_gtf(String gtfGeneLine) {
         GeneEntry gene = new GeneEntry(gtfGeneLine);

@@ -40,8 +40,8 @@ public class GeneEntry implements Comparable<GeneEntry>, Serializable {
     public GeneEntry() {
     }
 
-    public GeneEntry(String gtfgeneline) {
-        init(gtfgeneline);
+    public GeneEntry(String annotationGeneLine) {
+        init(annotationGeneLine);
     }
 
     //returns the gene ID
@@ -120,16 +120,16 @@ public class GeneEntry implements Comparable<GeneEntry>, Serializable {
 
 
 
-    // TODO Note - GeneEntry init method uses Utils.extract_coordinates_from_gtf_line, extract_Type, extract_Status_extract_gene_name, extract_tags, extract_gene_id.
-    private void init(String gtfgeneline) {
-        ArrayList<String> tokens = new ArrayList<>(Arrays.asList(Utils.tokenize(gtfgeneline, "\t")));
+    // TODO Note - GeneEntry init method uses extract_Type, extract_Status_extract_gene_name, extract_tags, extract_gene_id.
+    private void init(String annotationGeneLine) {
+        ArrayList<String> tokens = new ArrayList<>(Arrays.asList(Utils.tokenize(annotationGeneLine, "\t")));
 
-        //TODO Note - Edit made here
+        //TODO Note - Edits made here - Parser selection, removed type and status from GFF3, moved directly into GTFParser.  Extract gene id moved into respective parsers.  Extract gene name edited and split across pars
         if (GTFParser.instance != null) {
-            init(GTFParser.extract_gene_id(gtfgeneline), Utils.extract_coordinates_from_gtf_line(tokens), extract_type(tokens), extract_status(tokens), extract_gene_name(tokens), extract_tags(tokens));
+            init(GTFParser.extract_gene_id(annotationGeneLine), Utils.extract_coordinates_from_gtf_line(tokens), GTFParser.extract_type(tokens), GTFParser.extract_status(tokens), extract_gene_name(tokens), extract_tags(tokens));
         }
         else if (GFFParser.instance != null) {
-            init(GFFParser.extract_gene_id(gtfgeneline), Utils.extract_coordinates_from_gtf_line(tokens), extract_type(tokens), extract_status(tokens), extract_gene_name(tokens), extract_tags(tokens));
+            init(GFFParser.extract_gene_id(annotationGeneLine), Utils.extract_coordinates_from_gtf_line(tokens), "", "", extract_gene_name(tokens), extract_tags(tokens));
         }
 
     }
@@ -148,32 +148,7 @@ public class GeneEntry implements Comparable<GeneEntry>, Serializable {
         m_tags = tags;
     }
 
-    // TODO: Edit extract_type method - move this into the GTF parser, not relevant to GFF.
-    // after tokenizing the gene line these functions can be used to extract information.
-    // extracts the gene type (protein_coding,...)
-    private static String extract_type(List<String> tokens) {
-        String value = "";
-        if (tokens.size() >= 9) {
-            List<String> res = extract_by_tag("gene_type", tokens.get(8));
-            if (res.size() == 1) {
-                value = res.get(0);
-            }
-        }
-        return value;
-    }
 
-    // TODO: Edit extract_status method - Possibly generalise a method and repeat the general ID format concept.
-    //extracts the gene status (KNOWN,...)
-    private static String extract_status(List<String> tokens) {
-        String value = "";
-        if (tokens.size() >= 9) {
-            List<String> res = extract_by_tag("gene_status", tokens.get(8));
-            if (res.size() == 1) {
-                value = res.get(0);
-            }
-        }
-        return value;
-    }
 
     // TODO: Edit extract_gene_name method
     //extracts the gene symbol
@@ -199,9 +174,10 @@ public class GeneEntry implements Comparable<GeneEntry>, Serializable {
         return values;
     }
 
+    // TODO: Edit
     //tag takes the name of the tag to extract, tagList contains all tags separated by \.
     //possible values for tag could be gene_name, gene_type,...
-    private static List<String> extract_by_tag(String tag, String tagList) {
+    public static List<String> extract_by_tag(String tag, String tagList) {
         List<String> rValues = new ArrayList<>();
         String[] values = Utils.tokenize(tagList, ";", true);
         for (String value : values) {

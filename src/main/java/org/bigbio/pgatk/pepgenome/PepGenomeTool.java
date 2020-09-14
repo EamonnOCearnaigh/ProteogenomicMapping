@@ -62,8 +62,8 @@ public class PepGenomeTool {
     //-----------------input args--------------------------
     private static final String ARG_FASTA = "fasta";
     private static final String ARG_GTF = "gtf"; // Original - GTF only accepted
-    private static final String ARG_GFF = "gff"; //Addition - GFF only accepted
-    private static final String ARG_ANN = "ann"; //Addition - Annotation, GTF or GFF accepted
+    private static final String ARG_GFF = "gff"; // Addition - GFF only accepted
+    private static final String ARG_ANN = "ann"; // Addition - Annotation, GTF or GFF accepted
     private static final String ARG_IN = "in";
     private static final String ARG_MERGE = "merge";
     private static final String ARG_FORMAT = "format";
@@ -130,7 +130,7 @@ public class PepGenomeTool {
         }
 
 
-        // TODO Edit made to input arguments.  Working.
+        // TODO Edit (Working as expected)
         // Following selection block replaced with two new blocks.
         /*
         if (!cmd.hasOption(ARG_FASTA) || !cmd.hasOption(ARG_ANN) || !cmd.hasOption(ARG_IN)) {
@@ -175,19 +175,20 @@ public class PepGenomeTool {
         String peptideInputFilePathsParam = cmd.getOptionValue(ARG_IN);
         String fastaGenomeFilePath = cmd.getOptionValue(ARG_GENOME_FASTA);
 
-        // TODO Edit
+        // TODO Edit (Working as expected)
         String annFilePath = "";
-        if (cmd.getOptionValue(ARG_GFF) != null) {
+        if (cmd.getOptionValue(ARG_GFF) != null && cmd.getOptionValue(ARG_GFF).endsWith(".gff3")) {
             annFilePath = cmd.getOptionValue(ARG_GFF);
         }
-        else if (cmd.getOptionValue(ARG_GTF) != null) {
+        else if (cmd.getOptionValue(ARG_GTF) != null && cmd.getOptionValue(ARG_GTF).endsWith(".gtf")) {
             annFilePath = cmd.getOptionValue(ARG_GTF);
         }
-        else if (cmd.getOptionValue(ARG_ANN) != null) {
+        else if (cmd.getOptionValue(ARG_ANN) != null && (cmd.getOptionValue(ARG_ANN).endsWith(".gff3") || cmd.getOptionValue(ARG_ANN).endsWith(".gtf"))) {
             annFilePath = cmd.getOptionValue(ARG_ANN);
         }
         else {
-            log.info(" *** Please provide valid input for -ann, -gtf or -gff. Allowed file extensions are .gtf or .gff/.gff3 ***");
+            log.info(" *** Annotation Input Error: Please provide valid input for -ann, -gtf or -gff. Allowed file extensions are .gtf or .gff3 ***");
+            log.info(" *** Note: -ann accepts both .gtf and .gff3 ***");
             Utils.printHelpAndExitProgram(options, true, GENOME_MAPPER_EXIT_INVALID_ARG);
         }
         //End of edit
@@ -334,14 +335,14 @@ public class PepGenomeTool {
 
             log.info("reading Annotation file: " + annFilePath);
             MappedPeptides mapped_peptides = new MappedPeptides();
-            // TODO Edited - File path selection for gtf or gff.
+            // TODO Edit (Working as expected)
             // Check the file extension.  If GTF, run the GTFParser, else if GFF3, run the GFFParser.
             // Adjust this to use an abstract annotation parser.
 
             Assembly assem = null;
             if (annFilePath.endsWith(".gtf")) {
                 assem = GTFParser.get_instance().read(annFilePath, coordinate_wrapper, mapped_peptides);
-            } else if (annFilePath.endsWith(".gff") || annFilePath.endsWith(".gff3")) {
+            } else if (annFilePath.endsWith(".gff3")) {
                 assem = GFFParser.get_instance().read(annFilePath, coordinate_wrapper, mapped_peptides);
             }
             log.info("Annotation (GTF/GFF3) done!");
