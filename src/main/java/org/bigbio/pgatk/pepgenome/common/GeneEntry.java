@@ -117,19 +117,18 @@ public class GeneEntry implements Comparable<GeneEntry>, Serializable {
         return m_coord.getChr().isScaffold() && !m_coord.getChrscaf().equals("");
     }
 
-
-
-
-    // TODO Note - GeneEntry init method uses extract_Type, extract_Status_extract_gene_name, extract_tags, extract_gene_id.
     private void init(String annotationGeneLine) {
         ArrayList<String> tokens = new ArrayList<>(Arrays.asList(Utils.tokenize(annotationGeneLine, "\t")));
 
-        //TODO Note - Edits made here - Parser selection, removed type and status from GFF3, moved directly into GTFParser.  Extract gene id moved into respective parsers.  Extract gene name edited and split across pars
+        //TODO Edited - Parser selection, removed type and status from GFF3, moved directly into GTFParser.  Extract gene id moved into respective parsers.  Extract gene name edited and split across pars
         if (GTFParser.instance != null) {
-            init(GTFParser.extract_gene_id(annotationGeneLine), Utils.extract_coordinates_from_gtf_line(tokens), GTFParser.extract_type(tokens), GTFParser.extract_status(tokens), extract_gene_name(tokens), extract_tags(tokens));
+            init(GTFParser.extract_gene_id(annotationGeneLine), Utils.extract_coordinates_from_gtf_line(tokens), GTFParser.extract_type(tokens), GTFParser.extract_status(tokens), GTFParser.extract_gene_name(tokens), extract_tags(tokens));
         }
+
+        //TODO Edited: Type, Status removed.  Gene name given an alternative method.
+        //TODO Possible edit: May need to remove extract_tags.
         else if (GFFParser.instance != null) {
-            init(GFFParser.extract_gene_id(annotationGeneLine), Utils.extract_coordinates_from_gtf_line(tokens), "", "", extract_gene_name(tokens), extract_tags(tokens));
+            init(GFFParser.extract_gene_id(annotationGeneLine), Utils.extract_coordinates_from_gtf_line(tokens), "", "", GFFParser.extract_gene_name(tokens), extract_tags(tokens));
         }
 
     }
@@ -146,22 +145,6 @@ public class GeneEntry implements Comparable<GeneEntry>, Serializable {
         m_status = status;
         m_gene_name = gene_name;
         m_tags = tags;
-    }
-
-
-
-    // TODO: Edit extract_gene_name method
-    //extracts the gene symbol
-    private static String extract_gene_name(List<String> tokens) {
-        String value = "";
-        if (tokens.size() >= 9) {
-            List<String> res = extract_by_tag("gene_name", tokens.get(8));
-
-            if (res.size() == 1) {
-                value = res.get(0);
-            }
-        }
-        return value;
     }
 
     // TODO: Edit extract_tags method (?)

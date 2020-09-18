@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+// TODO Edit - Incorrect formats, not recognising James's files as correct input.
 public class ProteinEntry implements Serializable {
     private static final long serialVersionUID = -1732196455282495216L;
     //whole fasta header
@@ -15,10 +15,13 @@ public class ProteinEntry implements Serializable {
     private String m_gene_id;
     //the AA sequence.
     private String m_aa_sequence;
-    //regex pattern for gene ID
-    private static Pattern GENEPATTERN = Pattern.compile("gene:([^\\s\\.]*)[^\\s]*\\s");
-  //regex pattern for gene ID
-    private static Pattern TRANSCRIPTPATTERN = Pattern.compile("transcript:([^\\s\\.]*)[^\\s]*\\s");
+    // GTF regex patterns
+    private static Pattern GENEPATTERN = Pattern.compile("gene:([^\\s\\.]*)[^\\s]*\\s"); // Gene ID tag
+    private static Pattern TRANSCRIPTPATTERN = Pattern.compile("transcript:([^\\s\\.]*)[^\\s]*\\s"); // Transcript ID tag
+
+    // Spladder regex patterns
+    private static Pattern spladderGENEPATTERN = Pattern.compile("gene=([^;.]*)");
+    private static Pattern spladderTRANSCRIPTTPATTERN = Pattern.compile("alt_([^;.]*)");
 
     //std::multimap <Coordinates (protein coordinates), GenomeCoordinates(corresponding genomic coordinates), Coordinates (passing this as third argument will use the Coordinates::operator() as comparator)>
     //the first Coordinate are the coordinates of exons within the protein and the GenomeCoordinate is its corresponding location in the genome.
@@ -60,10 +63,12 @@ public class ProteinEntry implements Serializable {
         }
     }
 
+    // TODO Edit - Added spladder patterns
     //gets the transcriptId from a fasta header
     private String extract_transcript_id_fasta(String str) {
     	String value = "";
-    	Matcher transcriptMatcher = TRANSCRIPTPATTERN.matcher(str);
+        // TODO Original: Matcher transcriptMatcher = TRANSCRIPTPATTERN.matcher(str);
+    	Matcher transcriptMatcher = spladderTRANSCRIPTTPATTERN.matcher(str);
     	if (transcriptMatcher.find()) {
     		value = transcriptMatcher.group(1);
     	} else {
@@ -73,13 +78,17 @@ public class ProteinEntry implements Serializable {
     			value = dotsplit[0];
     		}
     	}
+
+
         return value;
     }
 
+    // TODO Edit - Added spladder patterns
     //gets the gene id from a fasta header
     private String extract_gene_id_fasta(String str) {
     	String value = "";
-    	Matcher geneMatcher = GENEPATTERN.matcher(str);
+        // TODO Original: Matcher genetMatcher = GENEPATTERN.matcher(str);
+    	Matcher geneMatcher = spladderGENEPATTERN.matcher(str);
     	if (geneMatcher.find()) {
     		value = geneMatcher.group(1);
     	} else {
@@ -89,6 +98,23 @@ public class ProteinEntry implements Serializable {
     			value = dotsplit[0];
     		}
     	}
+        return value;
+    }
+
+    // TODO Edit - Turn this method into an offset extraction
+    //gets the gene id from a fasta header
+    private String extract_offset_fasta(String str) {
+        String value = "";
+        Matcher geneMatcher = GENEPATTERN.matcher(str);
+        if (geneMatcher.find()) {
+            value = geneMatcher.group(1);
+        } else {
+            String[] split = str.split("\\|");
+            if(split.length==8) {
+                String[] dotsplit = split[2].split("\\.");
+                value = dotsplit[0];
+            }
+        }
         return value;
     }
 

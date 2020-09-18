@@ -38,7 +38,7 @@ public class GFFParser {
     }
 
 
-    // GFF3 - All relevant feature types are reduced to the tags 'ID' and 'Parent' rather than GTF's 'gene ID' and 'transcript ID'.
+    // GFF3 Patterns
     private static Pattern GFFIDPATTERN = Pattern.compile("ID=([^;.]*)"); // ID tag
     private static Pattern GFFPARENTPATTERN = Pattern.compile("Parent=([^;.]*)"); // Parent tag
 
@@ -131,7 +131,7 @@ public class GFFParser {
 
             // GENE
             if (is_next_gene(tokens)) {
-                Assembly assemtemp = mapping.add_gene_from_gtf(line); // check this TODO Note - add_gene_from_gtf used here.
+                Assembly assemtemp = mapping.add_gene_from_gtf(line); // check this TODO Note: add_gene_from_gtf used here.
                 if (assem == Assembly.none) {
                     if (assemtemp == Assembly.patchhaploscaff) {
                         assem = assemtemp;
@@ -140,19 +140,18 @@ public class GFFParser {
             }
 
             // TRANSCRIPT
-            String transcriptId = extract_transcript_id(line); //TODO Note - GENEENTRY extract_transcript_id_gff used here.
+            String transcriptId = extract_transcript_id(line); //TODO Note: extract_transcript_id_gff used here.
             if (is_next_transcript(tokens)) {
 
-                // TODO Edit - Add transcript and associated gene to idMap for later access.
+                // TODO Edited - Added transcript and associated gene id to idMap for later access.
                 String geneId = extract_id(line, GFFPARENTPATTERN);
-                idMap.put(transcriptId,geneId);
+                idMap.put(transcriptId,geneId); // Places transcript id and gene id into hash map.
 
                 exonID = "";
                 mapping.add_transcript_id_to_gene(line); //TODO Note - MAPPEDPEPTIDES add_transcript_id_to_gene used here.
                 if (proteinEntry != null) {
                     proteinEntry.set_coordinate_map(coordinatesMap);
                 }
-
 
                 proteinEntry = coordwrapper.lookup_entry(transcriptId);
                 if (proteinEntry == null) {
@@ -423,6 +422,20 @@ public class GFFParser {
         Matcher matcher = pattern.matcher(gtfGeneLine);
         if (matcher.find()) {
             value = matcher.group(1);
+        }
+        return value;
+    }
+
+    // TODO Edited - extract_gene_name method moved from GeneEntry to GFF Parser and edited.  Original version moved to GTF Parser.
+    //extracts the gene symbol
+    public static String extract_gene_name(List<String> tokens) {
+        String value = "";
+        if (tokens.size() >= 9) {
+            List<String> res = GeneEntry.extract_by_tag("gene_name", tokens.get(8));
+
+            if (res.size() == 1) {
+                value = res.get(0);
+            }
         }
         return value;
     }

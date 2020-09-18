@@ -88,7 +88,6 @@ public class PepGenomeTool {
     private static boolean inMemory = true;
     private static INPUT_FILE_FORMAT fileFormat = INPUT_FILE_FORMAT.TAB;
 
-
     // MAIN
     public static void main(String[] args) {
 
@@ -152,7 +151,7 @@ public class PepGenomeTool {
             Utils.printHelpAndExitProgram(options, true, GENOME_MAPPER_EXIT_TOO_FEW_ARGS);
         }
 
-        
+
 
         if (cmd.hasOption(ARG_INPUT_FORMAT))
             fileFormat = INPUT_FILE_FORMAT.findByString(cmd.getOptionValue(ARG_INPUT_FORMAT));
@@ -180,9 +179,11 @@ public class PepGenomeTool {
         String annFilePath = "";
         if (cmd.getOptionValue(ARG_GFF) != null && cmd.getOptionValue(ARG_GFF).endsWith(".gff3")) {
             annFilePath = cmd.getOptionValue(ARG_GFF);
+
         }
         else if (cmd.getOptionValue(ARG_GTF) != null && cmd.getOptionValue(ARG_GTF).endsWith(".gtf")) {
             annFilePath = cmd.getOptionValue(ARG_GTF);
+
         }
         else if (cmd.getOptionValue(ARG_ANN) != null && (cmd.getOptionValue(ARG_ANN).endsWith(".gff3") || cmd.getOptionValue(ARG_ANN).endsWith(".gtf"))) {
             annFilePath = cmd.getOptionValue(ARG_ANN);

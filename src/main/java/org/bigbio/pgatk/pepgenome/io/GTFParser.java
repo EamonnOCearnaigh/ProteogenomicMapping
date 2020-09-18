@@ -310,8 +310,19 @@ public class GTFParser {
         return value;
     }
 
+    // TODO Edited - extract_gene_name method moved from GeneEntry to the GTF Parser.  Alternate version moveed to GFF Parser.
+    //extracts the gene symbol
+    public static String extract_gene_name(List<String> tokens) {
+        String value = "";
+        if (tokens.size() >= 9) {
+            List<String> res = GeneEntry.extract_by_tag("gene_name", tokens.get(8));
 
-
+            if (res.size() == 1) {
+                value = res.get(0);
+            }
+        }
+        return value;
+    }
 
 
 }
