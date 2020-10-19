@@ -51,7 +51,7 @@ public class CoordinateWrapper implements Serializable {
         m_map.put(entry.get_transcript_id(), entry);
     }
 
-    // TODO Edit read_fasta_File
+    // TODO Note: Made edits within FastaParser, ProteinEntry.  FastaEntry did not require changes.
     //reads and parses a fasta file and adds all of them to the CoordinateWrapper.
     public final void read_fasta_file(String file) throws Exception {
         totalAACount = 0;

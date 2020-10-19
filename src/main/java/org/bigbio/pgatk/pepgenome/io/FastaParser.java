@@ -59,38 +59,7 @@ public class FastaParser implements Serializable {
         br = null;
     }
 
-/*
-    // TODO Edit FastaParser.nextEntry() - Attached new method, see below. (Working so far)
-    //parses and returns the next FASTA entry.
-    public final FastaEntry nextEntry() throws IOException {
-        if (mLine.isEmpty()) {
-            mLine = br.readLine();
-        }
 
-        if (mLine == null) {
-            return new FastaEntry("", "");
-        }
-        String header = mLine;
-        StringBuilder sequenceBuilder = new StringBuilder();
-        while ((mLine = br.readLine()) != null && !mLine.startsWith(">")) {
-            if (mLine.startsWith(">")) {
-                //extractOffset(mLine);
-            }
-            else {
-                sequenceBuilder.append(Utils.make_iso_sequence(mLine));
-            }
-
-        }
-        if (mLine == null || !mLine.startsWith(">")) {
-            mLine = "";
-        }
-
-        return new FastaEntry(header, sequenceBuilder.toString());
-    }
-
- */
-
-    // Copy of original method.
     //parses and returns the next FASTA entry.
     public final FastaEntry nextEntry() throws IOException {
         if (mLine.isEmpty()) {
@@ -111,16 +80,5 @@ public class FastaParser implements Serializable {
 
         return new FastaEntry(header, sequenceBuilder.toString());
     }
-
-
-/*
-    // TODO Edit - New Method
-    private void extractOffset (String line) {
-        if (line.contains("spos")) {
-            System.out.println(true);
-        }
-    }
-
- */
 
 }

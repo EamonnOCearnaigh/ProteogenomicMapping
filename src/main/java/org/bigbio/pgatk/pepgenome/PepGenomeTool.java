@@ -12,8 +12,10 @@ import org.bigbio.pgatk.pepgenome.io.custom.PeptideAtlasPeptideParser;
 import org.bigbio.pgatk.pepgenome.kmer.IKmerMap;
 import org.bigbio.pgatk.pepgenome.kmer.inmemory.KmerSortedMap;
 import org.bigbio.pgatk.pepgenome.kmer.inmemory.KmerTreeMap;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.stream.Stream;
 
 
@@ -59,11 +61,13 @@ public class PepGenomeTool {
     private static final int GENOME_MAPPER_EXIT_TOO_FEW_ARGS = 2;
     private static final int GENOME_MAPPER_EXIT_INVALID_ARG = 3;
 
+    //TODO Edits made to input args
     //-----------------input args--------------------------
     private static final String ARG_FASTA = "fasta";
     private static final String ARG_GTF = "gtf"; // Original - GTF only accepted
     private static final String ARG_GFF = "gff"; // Addition - GFF only accepted
     private static final String ARG_ANN = "ann"; // Addition - Annotation, GTF or GFF accepted
+    private static final String ARG_EXON_COORDS = "exco"; // Addition - Use genomic coordinates of exons rather than CDS annotation features.  (Peptides unannotated).
     private static final String ARG_IN = "in";
     private static final String ARG_MERGE = "merge";
     private static final String ARG_FORMAT = "format";
@@ -87,6 +91,10 @@ public class PepGenomeTool {
     private static boolean chrincluded = false;
     private static boolean inMemory = true;
     private static INPUT_FILE_FORMAT fileFormat = INPUT_FILE_FORMAT.TAB;
+    public static boolean useExonCoords = false; //TODO Edit - ExonCoords default value
+
+    // TODO Edited - Added map of transcript ID to CDS offset.
+    public static HashMap<String, Integer> m_offsetMap = new HashMap<>();
 
     // MAIN
     public static void main(String[] args) {
@@ -101,6 +109,7 @@ public class PepGenomeTool {
                 .addOption(Option.builder(ARG_GTF).hasArg(true).desc("Filepath for file containing genome annotation in GTF format").build())
                 .addOption(Option.builder(ARG_GFF).hasArg(true).desc("Filepath for file containing genome annotation in GFF3 format").build())
                 .addOption(Option.builder(ARG_ANN).hasArg(true).desc("Filepath for file containing genome annotation in GTF or GFF3 format").build())
+                .addOption(Option.builder(ARG_EXON_COORDS).hasArg(true).desc("Use exon coordinates rather than CDS due to lack of available genome annotation").build()) //TODO Edited - Added exon coord option
                 .addOption(Option.builder(ARG_IN).hasArg(true).desc("Comma(,) separated file paths for files containing peptide identifications (Contents of the file can tab separated format. i.e., File format: four columns: SampleName\t\tPeptideSequence\t\tPSMs\tQuant; or mzTab, and mzIdentML)").build())
                 .addOption(Option.builder(ARG_MERGE).hasArg(true).desc("Set 'true' to merge mappings from all files from input (default 'false')").build())
                 .addOption(Option.builder(ARG_FORMAT).hasArg(true).desc("Select the output formats from gtf, gct, bed, ptmbed, all or combinations thereof separated by ',' (default all)").build())
@@ -158,6 +167,11 @@ public class PepGenomeTool {
 
         if (cmd.hasOption(ARG_INMEMORY) && cmd.getOptionValue(ARG_INMEMORY).equalsIgnoreCase("1")) {
             inMemory = false;
+        }
+
+        //TODO Edit - Added exon coords argument check
+        if (cmd.hasOption(ARG_EXON_COORDS)) {
+            useExonCoords = true;
         }
 
         SparkConfig sparkConfig = SparkConfig.getInstance();
@@ -308,16 +322,21 @@ public class PepGenomeTool {
         try {
 
             if (fastaGenomeFilePath != null) {
-                log.info("reading genome FASTA: " + fastaGenomeFilePath);
+                log.info("Reading genome FASTA: " + fastaGenomeFilePath);
                 GenomeFastaParser.readGenomeFASTA(fastaGenomeFilePath);
             }
 
-            log.info("reading FASTA: " + fastaFilePath);
+            log.info("Reading FASTA: " + fastaFilePath);
             CoordinateWrapper coordinate_wrapper = new CoordinateWrapper();
             coordinate_wrapper.read_fasta_file(fastaFilePath);
 
+            // TODO Remove testing
+            //System.out.println(m_offsetMap.size());
+            //System.out.println(m_offsetMap.keySet().toString());
+            //System.out.println(m_offsetMap.toString());
+
             log.info("Fasta done: " + coordinate_wrapper.size() + " proteins read.");
-            log.info("building KmerTreeMap...");
+            log.info("Building KmerTreeMap...");
 
             int kmerSize = (coordinate_wrapper.getTotalAACount() / coordinate_wrapper.getNumberOfProteins());
             kmerSize = (kmerSize / GenomeMapper.PEPTIDE_MAPPER.KMER_LENGTH) * coordinate_wrapper.getNumberOfProteins();
@@ -335,7 +354,7 @@ public class PepGenomeTool {
 
             log.info("KmerTreeMap done: " + kmer_map.size() + " unique " + GenomeMapper.PEPTIDE_MAPPER.KMER_LENGTH + "-mers created.");
 
-            log.info("reading Annotation file: " + annFilePath);
+            log.info("Reading Annotation file: " + annFilePath);
             MappedPeptides mapped_peptides = new MappedPeptides();
             // TODO Edit (Working as expected)
             // Check the file extension.  If GTF, run the GTFParser, else if GFF3, run the GFFParser.

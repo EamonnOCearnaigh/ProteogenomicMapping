@@ -21,7 +21,7 @@ public class GTFParser {
 
     private static Logger log = LoggerFactory.getLogger(GTFParser.class);
 
-    //inputstream
+    //input stream
     private BufferedReader reader;
 
     private FileInputStream ifs;
@@ -76,10 +76,6 @@ public class GTFParser {
     }
 
 
-
-
-
-
     //returns true if in the GTF at position 6 there is a + (plus strand)
     private static boolean is_first_strand(List<String> tokens) {
         return tokens.get(6).equals("+");
@@ -104,8 +100,6 @@ public class GTFParser {
     private static boolean is_next_gene(List<String> tokens) {
         return tokens.get(2).equals("gene");
     }
-
-
 
 
     //reads a gtf file and parses it into CoordinateWrapper and MappedPeptides.
@@ -144,7 +138,7 @@ public class GTFParser {
                 }
                 proteinEntry = coordwrapper.lookup_entry(transcriptId);
                 if (proteinEntry == null) {
-                    log.info("ERROR: No entry for with transcript ID: " + transcriptId);
+                    log.info("ERROR: No entry for transcript ID: " + transcriptId);
                     continue;
                 }
 //                protein_coordinates = new Coordinates();
