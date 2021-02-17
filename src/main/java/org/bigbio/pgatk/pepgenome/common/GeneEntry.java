@@ -120,7 +120,7 @@ public class GeneEntry implements Comparable<GeneEntry>, Serializable {
     private void init(String annotationGeneLine) {
         ArrayList<String> tokens = new ArrayList<>(Arrays.asList(Utils.tokenize(annotationGeneLine, "\t")));
 
-        //TODO Edited - Parser selection, removed type and status from GFF3, moved directly into GTFParser.  Extract gene id moved into respective parsers.  Extract gene name edited and split across pars
+        //TODO Edited - Parser selection, removed type and status from GFF3, moved into GTFParser.  Extract gene id moved into respective parsers.  Extract gene name edited and split across parsers.
         if (GTFParser.instance != null) {
             init(GTFParser.extract_gene_id(annotationGeneLine), Utils.extract_coordinates_from_gtf_line(tokens), GTFParser.extract_type(tokens), GTFParser.extract_status(tokens), GTFParser.extract_gene_name(tokens), extract_tags(tokens));
         }

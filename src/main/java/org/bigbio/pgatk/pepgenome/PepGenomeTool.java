@@ -61,11 +61,11 @@ public class PepGenomeTool {
     private static final int GENOME_MAPPER_EXIT_TOO_FEW_ARGS = 2;
     private static final int GENOME_MAPPER_EXIT_INVALID_ARG = 3;
 
-    //TODO Edits made to input args
+    // TODO Edits made to input args
     //-----------------input args--------------------------
     private static final String ARG_FASTA = "fasta";
-    private static final String ARG_GTF = "gtf"; // Original - GTF only accepted
-    private static final String ARG_GFF = "gff"; // Addition - GFF only accepted
+    private static final String ARG_GTF = "gtf"; // Original - GTF (only) accepted
+    private static final String ARG_GFF = "gff"; // Addition - GFF (only) accepted
     private static final String ARG_ANN = "ann"; // Addition - Annotation, GTF or GFF accepted
     private static final String ARG_EXON_COORDS = "exco"; // Addition - Use genomic coordinates of exons rather than CDS annotation features.  (Peptides unannotated).
     private static final String ARG_IN = "in";
@@ -91,10 +91,11 @@ public class PepGenomeTool {
     private static boolean chrincluded = false;
     private static boolean inMemory = true;
     private static INPUT_FILE_FORMAT fileFormat = INPUT_FILE_FORMAT.TAB;
-    public static boolean useExonCoords = false; //TODO Edit - ExonCoords default value
+    //TODO Edited - Added ExonCoords default value
+    public static boolean useExonCoords = false;
 
     // TODO Edited - Added map of transcript ID to CDS offset.
-    public static HashMap<String, Integer> m_offsetMap = new HashMap<>();
+    public static HashMap<String, Integer> m_translation_offset_map = new HashMap<>();
 
     // MAIN
     public static void main(String[] args) {
@@ -107,9 +108,10 @@ public class PepGenomeTool {
         Options options = new Options();
         options.addOption(Option.builder(ARG_FASTA).hasArg(true).desc("Filepath for file containing protein sequences in FASTA format").build())
                 .addOption(Option.builder(ARG_GTF).hasArg(true).desc("Filepath for file containing genome annotation in GTF format").build())
+                //TODO Edited - Added GFF, ANN and EXON_COORDS options
                 .addOption(Option.builder(ARG_GFF).hasArg(true).desc("Filepath for file containing genome annotation in GFF3 format").build())
                 .addOption(Option.builder(ARG_ANN).hasArg(true).desc("Filepath for file containing genome annotation in GTF or GFF3 format").build())
-                .addOption(Option.builder(ARG_EXON_COORDS).hasArg(true).desc("Use exon coordinates rather than CDS due to lack of available genome annotation").build()) //TODO Edited - Added exon coord option
+                .addOption(Option.builder(ARG_EXON_COORDS).hasArg(true).desc("Use exon coordinates rather than CDS (Unannotated peptides)").build())
                 .addOption(Option.builder(ARG_IN).hasArg(true).desc("Comma(,) separated file paths for files containing peptide identifications (Contents of the file can tab separated format. i.e., File format: four columns: SampleName\t\tPeptideSequence\t\tPSMs\tQuant; or mzTab, and mzIdentML)").build())
                 .addOption(Option.builder(ARG_MERGE).hasArg(true).desc("Set 'true' to merge mappings from all files from input (default 'false')").build())
                 .addOption(Option.builder(ARG_FORMAT).hasArg(true).desc("Select the output formats from gtf, gct, bed, ptmbed, all or combinations thereof separated by ',' (default all)").build())
@@ -150,17 +152,15 @@ public class PepGenomeTool {
 
         // Check for protein sequence input and peptide input.
         if (!cmd.hasOption(ARG_FASTA) || !cmd.hasOption(ARG_IN)) {
-            log.info("*** Missing mandatory parameters: -fasta and -in ***");
+            log.info("*** Missing mandatory parameters: -fasta and/or -in ***");
             Utils.printHelpAndExitProgram(options, true, GENOME_MAPPER_EXIT_TOO_FEW_ARGS);
         }
 
-        // Addition - Check for genome annotation input.  Can be ann (GTF/GFF3), GTF or GFF.
+        // TODO Edited -Additional check for genome annotation input.  Can be ANN (GTF/GFF3), GTF or GFF.
         if (!cmd.hasOption(ARG_GTF) && !cmd.hasOption(ARG_ANN) && !cmd.hasOption(ARG_GFF)) {
             log.info("*** Missing mandatory parameters: -gtf/-gff/-ann ***");
             Utils.printHelpAndExitProgram(options, true, GENOME_MAPPER_EXIT_TOO_FEW_ARGS);
         }
-
-
 
         if (cmd.hasOption(ARG_INPUT_FORMAT))
             fileFormat = INPUT_FILE_FORMAT.findByString(cmd.getOptionValue(ARG_INPUT_FORMAT));

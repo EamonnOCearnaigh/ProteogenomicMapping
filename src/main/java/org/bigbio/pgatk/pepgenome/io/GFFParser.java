@@ -38,10 +38,13 @@ public class GFFParser {
     private GFFParser() {
     }
 
+    // TODO Edited - Translation start point offset (For use with unannotated peptides)
+    private static int translationOffset = 0;
+
 
     // GFF3 Patterns
-    private static Pattern GFFIDPATTERN = Pattern.compile("ID=([^;.]*)"); // ID tag
-    private static Pattern GFFPARENTPATTERN = Pattern.compile("Parent=([^;.]*)"); // Parent tag
+    private static final Pattern GFFIDPATTERN = Pattern.compile("ID=([^;]*)"); // ID tag
+    private static final Pattern GFFPARENTPATTERN = Pattern.compile("Parent=([^;]*)"); // Parent tag
 
     // Singleton get_instance method.
     public static GFFParser get_instance() {
@@ -80,7 +83,7 @@ public class GFFParser {
 
 
 
-    // Returns true if in the GTF at position 6 there is a + (plus strand)
+    // Returns true if in the feature line at position 6 there is a + (plus strand)
     private static boolean is_first_strand(List<String> tokens) {
         return tokens.get(6).equals("+");
     }
@@ -95,6 +98,7 @@ public class GFFParser {
         return tokens.get(2).equals("exon");
     }
 
+    // TODO Slight edit ("transcript" --> "mRNA")
     // Returns true if line feature type is transcript - Switched "transcript" to "mRNA"
     private static boolean is_next_transcript(List<String> tokens) { return tokens.get(2).equals("mRNA"); }
 
@@ -114,14 +118,17 @@ public class GFFParser {
         String exonID = "";
         ProteinEntry proteinEntry = null;
         ArrayList<Tuple<Coordinates, GenomeCoordinates>> coordinatesMap = new ArrayList<>();
+        //TODO Added remainingProteinLength variable (before parsing loop)
+        int remainingProteinLength = 0;
 
         Coordinates prevProteinCoordinates = new Coordinates();
         Assembly assem = Assembly.none;
         ArrayList<String> tokens;
 
         // TODO Added hash map of transcript IDs to gene IDs so that gene ID may be retrieved for exons via transcripts (children of genes, parents of exons).
-        HashMap<String, String> idMap = new HashMap<String, String>();
+        HashMap<String, String> idMap = new HashMap<>();
 
+        //TODO Parser read loop starts here
         while ((line = reader.readLine()) != null) {
             if (line.startsWith("#")) {
                 continue;
@@ -141,8 +148,8 @@ public class GFFParser {
             }
 
             // TRANSCRIPT
-            // String transcriptId = extract_transcript_id(line); //TODO Edited: Removed line.  Inserted replacement a couple of lines down.****
-            String transcriptId = ""; //TODO Edited: Added line to maintain correct scope. ****
+            // String transcriptId = extract_transcript_id(line); // TODO Edited: Removed line.  Inserted replacement a few lines down.****
+            String transcriptId = ""; // TODO Edited: Added line to maintain correct scope. ****
             if (is_next_transcript(tokens)) {
 
                 // TODO Edited - Added transcript and associated gene id to idMap for later access.
@@ -155,12 +162,15 @@ public class GFFParser {
                 if (proteinEntry != null) {
                     proteinEntry.set_coordinate_map(coordinatesMap);
                 }
-
+                // TODO Count length of of protein, check against exon peptide lengths.
+                // TODO Length of protein here
                 proteinEntry = coordwrapper.lookup_entry(transcriptId);
                 if (proteinEntry == null) {
                     Log.info("ERROR: No entry for transcript ID: " + transcriptId);
                     continue;
                 }
+                //TODO remainingProteinLength --> Assignment during transcript processing
+                remainingProteinLength = proteinEntry.get_sequence().length();
 
                 prevProteinCoordinates = new Coordinates();
                 prevProteinCoordinates.setCterm(Offset.off3); //cterm offset (see enum common.Offset)
@@ -168,6 +178,23 @@ public class GFFParser {
                 prevProteinCoordinates.setStart(0); //the start position
                 prevProteinCoordinates.setEnd(0); //the end position
                 coordinatesMap = new ArrayList<>();
+
+                // TODO Edit - Retrieve transcript's translation offset based on its ID.
+
+                if (PepGenomeTool.m_translation_offset_map.get(transcriptId) == null) {
+                    translationOffset = 0;
+                }
+                else {
+                    translationOffset = PepGenomeTool.m_translation_offset_map.get(transcriptId);
+                }
+
+                // For testing:
+                //translationOffset = PepGenomeTool.m_offsetMap.get("alt_3prime.4188_iso2"); // 0 (Passed)
+                //translationOffset = PepGenomeTool.m_translation_offset_map.get("alt_3prime.4201_iso2"); // 385 (Passed)
+
+
+                // Offset now set before exons are processed.  Processing am exon involves examining its length in nucleotides.
+                // This is compared to offset value to determine whether exon is deleted, changed or left alone.
 
 
                 // EXON
@@ -177,7 +204,7 @@ public class GFFParser {
 
                     // Altered CDS block
 
-                    // TODO Finish implementing the following:
+                    // TODO Finish implementing the following (Finished, now check everything is correct, and test):
                     // Chris: Change genCoord based on JAMES's offset from translation (e.g.
                     // exon completely untranslated (James offset longer than exon) -> remove -> nothing else required to do.
                     // exon partially translated (James offset shorter than exon) -> subtract offset from genCoord.start / add to genCoord.end (depending on strand).
@@ -206,24 +233,60 @@ public class GFFParser {
                     Also mind strand direction (Forward, Reverse).
                      */
 
-                    // Extract genomic coordinates from exon line
-                    GenomeCoordinates genomeCoordinates = Utils.extract_coordinates_from_gtf_line(tokens);
-
-                    // TODO Edited - Determine length between start and end points of exon (Moved position of this code, original position commented out below.)
-                    //  Determining length of exon
-                    int length = 0;
-                    if (is_first_strand(tokens)) {
-                        length = genomeCoordinates.getEnd() - genomeCoordinates.getStart() + 1;
-                    } else if (!is_first_strand(tokens)) {
-                        length = genomeCoordinates.getStart() - genomeCoordinates.getEnd() + 1;
-                    }
+                    // TODO Call 2 Notes
+                    // Generate input files for every case (10):
+                    // ...
+                    // ...Additional exon that isnt translated
+                    // Same for reverse
+                    // Extreme cases
 
 
                     // TODO Edited - Check exon has parent ID matching  the last transcript ID - Ensure offset is being applied correctly.  Possibly unnecessary.
                     if (extract_id(line, GFFPARENTPATTERN).equals(transcriptId)) {
 
-                        genomeCoordinates.setTranscriptid(transcriptId);
-                        exonID = extract_exon_id(line);
+                        // Extract genomic coordinates from exon line
+                        GenomeCoordinates genomeCoordinates = Utils.extract_coordinates_from_gtf_line(tokens);
+
+                        // TODO Edited - Determine length between start and end points of exon (Moved position of this code, original position commented out below.)
+                        //  Determining length of exon
+                        int length = 0;
+                        if (is_first_strand(tokens)) {
+                            length = genomeCoordinates.getEnd() - genomeCoordinates.getStart() + 1;
+                        } else if (!is_first_strand(tokens)) {
+                            length = genomeCoordinates.getStart() - genomeCoordinates.getEnd() + 1;
+                        }
+
+                        // TODO Edit - Check length of exon against offset.  Adjust coords accordingly.
+                        //TODO Edit - Check remaining protein length, 0 or below indicates all following exons are untranslated.
+
+                        // UNTRANSLATED EXON
+                        if (translationOffset > length || remainingProteinLength <= 0 ) {
+                            // Offset value greater than total exon length - Exon  is completely untranslated
+
+                            // Adjust offset
+                            translationOffset = translationOffset - length;
+                            System.out.println(translationOffset);
+
+                            continue;
+
+
+                            // PARTIALLY TRANSLATED EXON
+                        } else if (translationOffset > 0) {
+                            // Offset value not greater than exon length, but still greater than 0 - Exon is partially translated.
+                            // TODO Adjust genomic coords - Checked
+                            if (is_first_strand(tokens)) {
+                                genomeCoordinates.setStart(genomeCoordinates.getStart() + translationOffset);
+                            } else {
+                                genomeCoordinates.setEnd(genomeCoordinates.getEnd() - translationOffset);
+                            }
+
+                            // Adjust offset
+                            translationOffset = 0;
+                        }
+
+                        // PARTIALLY/FULLY TRANSLATED EXON
+                        genomeCoordinates.setTranscriptid(transcriptId);  // Using previous transcript's ID
+                        exonID = extract_exon_id(line);  // Extracted from current exon line
                         genomeCoordinates.setExonid(exonID);
                         Coordinates proteinCoordinates = new Coordinates();
 
@@ -298,6 +361,11 @@ public class GFFParser {
 
                         int peplength = length / 3;
 
+                        // TODO Change remaining protein length (RPL) to subtract the length of the peptide being processed.
+                        remainingProteinLength = remainingProteinLength - peplength;
+
+
+
                         int pepend = proteinCoordinates.getStart() + peplength - 1;
                         if (proteinCoordinates.getCterm() != Offset.off3) {
                             ++pepend;
@@ -317,18 +385,16 @@ public class GFFParser {
                 }
 
                 else {
-                    //System.out.println("Annotation: Using CDS Coords");
-
-                    // CDS analysed separately.
-
-                    // Place code here to ensure this case will function normally
+                    // System.out.println("Annotation: Using CDS Coords");
+                    // CDS analysed separately in own branch.
+                    // TODO Process exon as in original parser.
                 }
 
 
 
         } else if (is_cds(tokens)) {
 
-                // Normal CDS Block, edited to work with GFF3 but nothing more.
+                // Normal CDS Block, edited to work with GFF3 but no further changes.
             GenomeCoordinates genomeCoordinates = Utils.extract_coordinates_from_gtf_line(tokens); // Chris - Should be fine
             genomeCoordinates.setTranscriptid(transcriptId);
             String tmp_exonID = extract_id(line,GFFPARENTPATTERN); // TODO Edited to use Parent ID rather than own ID (Previously extract_exon_id which wont work in the CDS branch.)
@@ -433,17 +499,17 @@ public class GFFParser {
         return assem;
 }
 
-    // TODO Edited -looks for the text specified GENEPATTERN and returns the ID. (Working)
+    // TODO Edited -looks for the text specified and returns the ID. (Working)
     public static String extract_gene_id(String gtfGeneLine) {
         return extract_id(gtfGeneLine, GFFIDPATTERN);
     }
 
-    // TODO Edited -looks for the text specified in TRANSCRIPTPATTERN and returns the ID. (Working)
+    // TODO Edited -looks for the text specified and returns the ID. (Working)
     public static String extract_transcript_id(String gtfGeneLine) {
         return extract_id(gtfGeneLine, GFFIDPATTERN);
     }
 
-    //TODO Edited -looks for the text specified in EXONPATTERN and returns the ID. (Working)
+    //TODO Edited -looks for the text specified and returns the ID. (Working)
     public static String extract_exon_id(String gtfGeneLine) {
         return extract_id(gtfGeneLine, GFFIDPATTERN);
     }

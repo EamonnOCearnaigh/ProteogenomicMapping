@@ -6,7 +6,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-// TODO Edited- Incorrect patterns and gene/transcript extraction methods  - were not recognising James's FASTA headers as correct input.  Commented out originals and altered copies, etc.
+
+// TODO Edited- Changed patterns and gene/transcript extraction methods to fit new formats
+
 public class ProteinEntry implements Serializable {
     private static final long serialVersionUID = -1732196455282495216L;
     //whole fasta header
@@ -15,21 +17,21 @@ public class ProteinEntry implements Serializable {
     private String m_transcript_id;
     //gene id
     private String m_gene_id;
-    // TODO Edited - Added offset field
-    private int m_offset = 0;
+    // TODO Edited - Added translation offset field
+    private int m_translation_offset = 0;
     //the AA sequence.
     private String m_aa_sequence;
-    // Original regex patterns
-    private static Pattern GENEPATTERN = Pattern.compile("gene:([^\\s\\.]*)[^\\s]*\\s"); // Gene ID tag
-    private static Pattern TRANSCRIPTPATTERN = Pattern.compile("transcript:([^\\s\\.]*)[^\\s]*\\s"); // Transcript ID tag
 
-    // TODO Edited - Spladder regex patterns
-    private static Pattern spladderGENEPATTERN = Pattern.compile("gene=(.*)");
-    private static Pattern spladderTRANSCRIPTTPATTERN = Pattern.compile(">(.*)\\|");
-    private static Pattern spladderOFFSETPATTERN = Pattern.compile(" offset=(\\d*) ");
+    // TODO Note - Original regex patterns.
+    private static final Pattern originalGENEPATTERN = Pattern.compile("gene:([^\\s\\.]*)[^\\s]*\\s"); // Gene ID tag
+    private static final Pattern originalTRANSCRIPTPATTERN = Pattern.compile("transcript:([^\\s\\.]*)[^\\s]*\\s"); // Transcript ID tag
 
-    //std::multimap <Coordinates (protein coordinates), GenomeCoordinates(corresponding genomic coordinates), Coordinates (passing this as third argument will use the Coordinates::operator() as comparator)>
-    //the first Coordinate are the coordinates of exons within the protein and the GenomeCoordinate is its corresponding location in the genome.
+    // TODO Edited - Exco regex patterns
+    private static final Pattern excoGENEPATTERN = Pattern.compile("geneID=([^\\s]*)[^\\s]*\\s");
+    private static final Pattern excoTRANSCRIPTPATTERN = Pattern.compile("transcriptID=([^\\s]*)[^\\s]*");
+    private static final Pattern excoOFFSETPATTERN = Pattern.compile(" offset=(\\d*) ");
+    
+    //the first Coordinates are the coordinates of exons within the protein and the GenomeCoordinate is its corresponding location in the genome.
     private ArrayList<Tuple<Coordinates, GenomeCoordinates>> m_coordinates_map;
     //check if the coding sequence is dividable by 3bp and not offset due to incomplete transcript annotation.
     private int m_cds_annotation_correct;
@@ -41,7 +43,7 @@ public class ProteinEntry implements Serializable {
         this.m_aa_sequence = "";
         this.m_coordinates_map = new ArrayList<>();
         this.m_cds_annotation_correct = 0;
-        this.m_offset = 0;
+        this.m_translation_offset = 0;
     }
 
     public ProteinEntry(String fastaHeader, String AAsequence) {
@@ -57,76 +59,138 @@ public class ProteinEntry implements Serializable {
         init(fastaEntry.get_header(), fastaEntry.get_sequence());
     }
 
+    // TODO Edited method for format compatibility.  Original method preserved below.
+    //sets all crucial values.
+    private void init(String fastaHeader, String AAsequence) {
+        if (fastaHeader.substring(0, 1).equals(">")) {
+
+            m_fasta_header = fastaHeader;
+            m_aa_sequence = AAsequence;
+            m_coordinates_map = new ArrayList<>();
+            m_cds_annotation_correct = 0;
+
+            m_gene_id = extract_gene_id_fasta(fastaHeader);
+            m_transcript_id = extract_transcript_id_fasta(fastaHeader);
+
+            //TODO Note - Translation offset extracted from FASTA here, mapped below
+            if (PepGenomeTool.useExonCoords) {
+                // Using exon coords in place of CDS: Using specific format
+                m_translation_offset = extract_offset_fasta(fastaHeader);
+
+            }
+            else {
+                // Not using exon coords in place of CDS: Using original format
+                m_translation_offset = 0;
+            }
+
+            //TODO Edited - Put transcript ID and offset value into translation offset map in PepGenomeTool
+            PepGenomeTool.m_translation_offset_map.put(m_transcript_id, m_translation_offset);
+
+        }
+    }
+
+
+    // TODO Edited method for format compatibility.  Original method preserved below.
+    private String extract_gene_id_fasta(String str) {
+        String value = "";
+
+        Matcher geneMatcher;
+        if (PepGenomeTool.useExonCoords) {
+            geneMatcher= excoGENEPATTERN.matcher(str);
+        } else {
+            geneMatcher= originalGENEPATTERN.matcher(str);
+        }
+
+        if (geneMatcher.find()) {
+            value = geneMatcher.group(1);
+            //System.out.println("Gene extracted correctly: "+value);
+        }
+        else {
+            System.out.println("Gene not extracted correctly from FASTA");
+            System.out.println("Attempting split extraction");
+
+            // From original method
+            String[] split = str.split("\\|");
+            if(split.length==8) {
+                String[] dotsplit = split[2].split("\\.");
+                value = dotsplit[0];
+            }
+
+        }
+
+        return value;
+    }
+
+    // TODO Edited method for format compatibility.  Original method preserved below.
+    // Extracts the transcript Id from a fasta header
+    private String extract_transcript_id_fasta(String str) {
+    	String value = "";
+
+    	Matcher transcriptMatcher;
+    	if (PepGenomeTool.useExonCoords) {
+            transcriptMatcher = excoTRANSCRIPTPATTERN.matcher(str);
+        } else {
+            transcriptMatcher = originalTRANSCRIPTPATTERN.matcher(str);
+
+            System.out.println("Gene not extracted correctly from FASTA");
+            System.out.println("Attempting split extraction");
+
+            // From original method
+            String[] split = str.split("\\|");
+            if(split.length==8) {
+                String[] dotsplit = split[1].split("\\.");
+                value = dotsplit[0];
+            }
+        }
+
+
+
+    	if (transcriptMatcher.find()) {
+    		value = transcriptMatcher.group(1);
+            //System.out.println("Transcript extracted correctly"+value);
+    	} else {
+            //System.out.println("Transcript not extracted correctly: "+value);
+    	}
+        return value;
+    }
+
+    // TODO Edited - Offset extraction
+    // Extracts the coding start point offset from a fasta header
+    private Integer extract_offset_fasta(String str) {
+        String value = "";
+        Matcher offsetMatcher = excoOFFSETPATTERN.matcher(str);
+        if (offsetMatcher.find()) {
+            value = offsetMatcher.group(1);
+            //System.out.println("Offset extracted correctly");
+            //System.out.println("Offset value: "+value);
+        }
+
+        m_translation_offset = Integer.parseInt(value);
+        //System.out.println("PROTEIN ENTRY: Adding transcript ID and offset to m_offsetMap");
+        //System.out.println("Gene ID: "+m_gene_id);
+        //System.out.println("Trans ID: "+m_transcript_id);
+        //System.out.println("Offset: "+m_translation_offset);
+
+
+        return m_translation_offset;
+    }
+
+    // TODO Original init method
+    /*
     //sets all crucial values.
     private void init(String fastaHeader, String AAsequence) {
         if (fastaHeader.substring(0, 1).equals(">")) {
             m_fasta_header = fastaHeader;
             m_transcript_id = extract_transcript_id_fasta(fastaHeader);
-            m_gene_id = extract_gene_id_fasta(fastaHeader);
+            m_gene_id = extract_gene_name_fasta(fastaHeader);
             m_aa_sequence = AAsequence;
             m_coordinates_map = new ArrayList<>();
             m_cds_annotation_correct = 0;
-            m_offset = extract_offset_fasta(fastaHeader);
+            m_translation_offset = extract_offset_fasta(fastaHeader);
         }
     }
 
-    // TODO Edited method for spladder format compatibility.  Original method preserved below.
-
-    // TODO Edited -  adjusted this method as transcripts were not being read.  Change pattern. (FIXED)
-    // gets the transcriptId from a fasta header
-    private String extract_transcript_id_fasta(String str) {
-    	String value = "";
-    	Matcher transcriptMatcher = spladderTRANSCRIPTTPATTERN.matcher(str);
-
-    	// TODO Note: Problem extracting trans ID (FIXED)***
-
-    	if (transcriptMatcher.find()) {
-    		value = transcriptMatcher.group(1);
-            //System.out.println("Transcript extracted correctly");
-            //System.out.println(value);
-    	} else {
-            System.out.println("Transcript not extracted correctly");
-    	    // Temporary measure until pattern fixed.
-    	    //value = value.substring(1,21);
-    	}
-        return value;
-    }
-
-
-    // TODO Edited method for spladder format compatibility.  Original method preserved below.
-    //gets the gene id from a fasta header
-    private String extract_gene_id_fasta(String str) {
-    	String value = "";
-        // TODO Original: Matcher genetMatcher = GENEPATTERN.matcher(str);
-    	Matcher geneMatcher = spladderGENEPATTERN.matcher(str);
-    	if (geneMatcher.find()) {
-    		value = geneMatcher.group(1);
-    	} else {
-            String[] split = str.split(" ");
-            value = split[2];
-    	}
-        return value;
-    }
-
-    // TODO Edited - Offset extraction (Working)
-    //gets the coding start point offset from a fasta header
-    private Integer extract_offset_fasta(String str) {
-        String value = "";
-        Matcher offsetMatcher = spladderOFFSETPATTERN.matcher(str);
-        if (offsetMatcher.find()) {
-            //System.out.println("Offset extracted correctly");
-            value = offsetMatcher.group(1);
-        }
-
-        //TODO Edited - Put transcript ID and offset value into map in PepGenomeTool
-        m_offset = Integer.parseInt(value);
-        //System.out.println("PROTEIN ENTRY: Adding transcript ID and offset to m_offsetMap");
-        //System.out.println(m_transcript_id);
-        //System.out.println(m_offset);
-        PepGenomeTool.m_offsetMap.put(m_transcript_id, m_offset);
-
-        return m_offset;
-    }
+     */
 
 
     // TODO Original extract_transcript_id_fasta method

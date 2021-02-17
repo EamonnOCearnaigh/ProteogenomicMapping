@@ -62,11 +62,12 @@ public class MappedPeptides implements Serializable {
         String transcript_id = "";
         String gene_id = "";
 
+        //TODO - Edited to allow GFF3 format, alongside GTF.
         if (GTFParser.instance != null) {
             transcript_id = GTFParser.extract_transcript_id(gtftranscriptline);
             gene_id = GTFParser.extract_gene_id(gtftranscriptline);
         }
-        //TODO - Edited
+
         else if (GFFParser.instance != null) {
             transcript_id = GFFParser.extract_transcript_id(gtftranscriptline);
             gene_id = GFFParser.extract_id(gtftranscriptline, Pattern.compile("Parent=([^;.]*)"));
