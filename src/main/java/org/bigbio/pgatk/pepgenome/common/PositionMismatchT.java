@@ -1,11 +1,11 @@
 package org.bigbio.pgatk.pepgenome.common;
 
 //this is made for a maximum of 2 mismatches but can easily be extended 
-//(for example just replace the ints with a vaector of int.)
+//(for example just replace the ints with a vector of int.)
 //care: this change has to be applied to KmerTreeMap::insert_into_gene_id_map
 
 //this struct holds information about the position of a peptide in a protein.
-//it also knows how many and where mismatches occured in the matching process.
+//it also knows how many and where mismatches occurred in the matching process.
 public class PositionMismatchT {
     //position of the peptide in the proteinsequence (zerobased)
     private int m_position_in_protein;

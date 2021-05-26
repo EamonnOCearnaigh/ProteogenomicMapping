@@ -106,8 +106,6 @@ public class ProteinEntry implements Serializable {
             //System.out.println("Gene extracted correctly: "+value);
         }
         else {
-            System.out.println("Gene not extracted correctly from FASTA");
-            System.out.println("Attempting split extraction");
 
             // From original method
             String[] split = str.split("\\|");
@@ -131,9 +129,6 @@ public class ProteinEntry implements Serializable {
             transcriptMatcher = excoTRANSCRIPTPATTERN.matcher(str);
         } else {
             transcriptMatcher = originalTRANSCRIPTPATTERN.matcher(str);
-
-            System.out.println("Gene not extracted correctly from FASTA");
-            System.out.println("Attempting split extraction");
 
             // From original method
             String[] split = str.split("\\|");

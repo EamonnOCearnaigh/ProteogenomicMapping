@@ -139,7 +139,7 @@ public class GFFParser {
 
             // GENE
             if (is_next_gene(tokens)) {
-                Assembly assemtemp = mapping.add_gene_from_gtf(line); // check this TODO Note: add_gene_from_gtf used here.
+                Assembly assemtemp = mapping.add_gene_from_annotation(line); // check this TODO Note: add_gene_from_gtf used here.
                 if (assem == Assembly.none) {
                     if (assemtemp == Assembly.patchhaploscaff) {
                         assem = assemtemp;

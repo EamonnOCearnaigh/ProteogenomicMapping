@@ -22,19 +22,25 @@ import java.util.regex.Pattern;
 public class MappedPeptides implements Serializable {
 
     private static final long serialVersionUID = -2379620873628957732L;
+    // TODO || FIELD: Map<String, MapEntry> m_mapping maps peptide sequence to map entry, chromosome only.||
     //maps the peptide sequence (without PTM) to the corresponding MapEntry (chromosomes).
     private Map<String, MapEntry> m_mapping = new TreeMap<>();
+    // TODO || FIELD: Map<String, MapEntry> m_mapping_phs maps is same as above but for patches, haplotypes, scaffolds.||
     //maps the peptide sequence (without PTM) to the corresponding MapEntry (patches, haplotypes, scaffolds).
     private Map<String, MapEntry> m_mapping_phs = new TreeMap<>();
+    // TODO || FIELD: m_count_peptides(_phs) counts no. of found peptides.||
     //counts the number of found peptides. similar to m_mapping.size().
     private int m_count_peptides;
     private int m_count_peptides_phs;
 
+    // TODO || FIELD: Map<String, Integer> m_tissuemap maps tissue to index||
     //maps a tissue to an index.
     private Map<String, Integer> m_tissuemap = new TreeMap<>();
+    // TODO || FIELD: int m_tissueindex holds index, incremented during program||
     //the index, to be incremented during the program.
     private int m_tissueindex;
 
+    // TODO || Default constructor||
     public MappedPeptides() {
 //        this.m_mapping = new TreeMap<>();
 //        this.m_mapping_phs = new TreeMap<>();
@@ -42,8 +48,22 @@ public class MappedPeptides implements Serializable {
 //        this.m_tissuemap = new TreeMap<>();
         this.m_tissueindex = 0;
     }
+    // TODO ||add_gene_from_annotation(String geneLine)||
+    //TODO: Note - Renamed some things
+    //adds a new gene from a gtf/gff3 line.
+    public final Assembly add_gene_from_annotation(String geneLine) {
+        GeneEntry gene = new GeneEntry(geneLine);
+        if (gene.is_primary()) {
+            m_mapping.put(gene.get_id(), new MapEntry(gene));
+            return Assembly.primary;
+        } else if (gene.is_patchhaploscaff()) {
+            m_mapping_phs.put(gene.get_id(), new MapEntry(gene));
+            return Assembly.patchhaploscaff;
+        }
+        return Assembly.none;
+    }
 
-    //adds a new gene from a gtfline.
+    /*
     public final Assembly add_gene_from_gtf(String gtfGeneLine) {
         GeneEntry gene = new GeneEntry(gtfGeneLine);
         if (gene.is_primary()) {
@@ -55,6 +75,7 @@ public class MappedPeptides implements Serializable {
         }
         return Assembly.none;
     }
+    */
 
     // maps a transcript id to a gene id.
     public final void add_transcript_id_to_gene(String gtftranscriptline) {
@@ -113,6 +134,7 @@ public class MappedPeptides implements Serializable {
         to_gtf(assem, source, System.out, true);
     }
 
+    // TODO ||To GTF method||
     public final void to_gtf(Assembly assem, String source, OutputStream os, boolean chrincluded) throws Exception {
         TreeSet<MapEntry> mapping_set = new TreeSet<>(new MapentryPCompare());
 
@@ -153,6 +175,7 @@ public class MappedPeptides implements Serializable {
         to_bed(assem, System.out, true);
     }
 
+    // TODO ||To BED method||
     public final void to_bed(Assembly assem, OutputStream os, boolean chrincluded) throws Exception {
         TreeSet<MapEntry> mapping_set = new TreeSet<>(new MapentryPCompare());
 
@@ -193,6 +216,8 @@ public class MappedPeptides implements Serializable {
         to_gct(assem, System.out, true);
     }
 
+
+    // TODO ||To PTM BED method||
     public final void to_gct(Assembly assem, OutputStream os, boolean chrincluded) throws Exception {
         TreeSet<MapEntry> mapping_set = new TreeSet<>(new MapentryPCompare());
 
@@ -259,6 +284,7 @@ public class MappedPeptides implements Serializable {
         to_ptmbed(assem, System.out, System.out, true);
     }
 
+    // TODO ||To PTM BED method||
     public final void to_ptmbed(Assembly assem, OutputStream os, OutputStream os2, boolean chrincluded) throws Exception {
         TreeSet<MapEntry> mapping_set = new TreeSet<>(new MapentryPCompare());
 
@@ -277,6 +303,7 @@ public class MappedPeptides implements Serializable {
         }
     }
 
+    // TODO ||Remove all peptides from MappedPeptides method||
     //removes all peptides from the MappedPeptides.
     public final void remove_all_peptides() {
         for (Map.Entry<String, MapEntry> it : m_mapping.entrySet()) {
@@ -292,6 +319,7 @@ public class MappedPeptides implements Serializable {
     }
 
     //converts the above map to a string that contains all found tissues, delimited by '\t' and sorted.
+    // TODO ||Tissuemap_to_sorted_string method||
     private String tissuemap_to_sorted_string(String sep) {
         TreeSet<Tuple<String, Integer>> tissueset = new TreeSet<>(new ByIntValue());
         for (Map.Entry<String, Integer> it : m_tissuemap.entrySet()) {
@@ -319,12 +347,15 @@ public class MappedPeptides implements Serializable {
      * @param transcriptsEntry Transcript Value
      * @throws Exception
      */
-    public final void add_peptide(CoordinateWrapper coordwrapper, String sequence, String tag, int sigPSMs, int genes, FileOutputStream ofstream, double quant, Map.Entry<String, TranscriptsT> transcriptsEntry) throws Exception {
+    // TODO ||Add Peptide method||
+    public final void add_peptide(CoordinateWrapper coordwrapper, String sequence, String tag, int sigPSMs, int genes, FileOutputStream ofstream, double quant, Map.Entry<String, TranscriptsT> transcriptsEntry, boolean isVariant) throws Exception {
+        // TODO ||Add tag, tissue index to tissue map (If not present)||
         if (!m_tissuemap.containsKey(tag)) {
             m_tissuemap.put(tag, m_tissueindex);
             ++m_tissueindex;
         }
 
+        // TODO ||Peptide, gene ID used HERE||
         final String geneID = transcriptsEntry.getKey();
         if (!(m_mapping.containsKey(geneID)) && !(m_mapping_phs.containsKey(geneID))) {
             StringJoiner ss = new StringJoiner(",");
@@ -333,12 +364,12 @@ public class MappedPeptides implements Serializable {
             }
             ofstream.write((geneID + "\t" + sequence + "\t" + ss.toString() + "\t" + genes + "\t" + tag + "\t" + sigPSMs + "\t" + quant + "\n").getBytes());
         } else if (m_mapping.containsKey(geneID) && !(m_mapping_phs.containsKey(geneID))) {
-            m_count_peptides += (m_mapping.get(geneID).addPeptide(coordwrapper, sequence, tag, sigPSMs, genes, ofstream, quant, transcriptsEntry) != 0) ? 0 : 1;
+            m_count_peptides += (m_mapping.get(geneID).addPeptide(coordwrapper, sequence, tag, sigPSMs, genes, ofstream, quant, transcriptsEntry, isVariant) != 0) ? 0 : 1;
         } else if (!(m_mapping.containsKey(geneID)) && m_mapping_phs.containsKey(geneID)) {
-            m_count_peptides_phs += (m_mapping_phs.get(geneID).addPeptide(coordwrapper, sequence, tag, sigPSMs, genes, ofstream, quant, transcriptsEntry) != 0) ? 0 : 1;
+            m_count_peptides_phs += (m_mapping_phs.get(geneID).addPeptide(coordwrapper, sequence, tag, sigPSMs, genes, ofstream, quant, transcriptsEntry, isVariant) != 0) ? 0 : 1;
         } else {
-            m_count_peptides += (m_mapping.get(geneID).addPeptide(coordwrapper, sequence, tag, sigPSMs, genes, ofstream, quant, transcriptsEntry) != 0) ? 0 : 1;
-            m_count_peptides_phs += (m_mapping_phs.get(geneID).addPeptide(coordwrapper, sequence, tag, sigPSMs, genes, ofstream, quant, transcriptsEntry) != 0) ? 0 : 1;
+            m_count_peptides += (m_mapping.get(geneID).addPeptide(coordwrapper, sequence, tag, sigPSMs, genes, ofstream, quant, transcriptsEntry, isVariant) != 0) ? 0 : 1;
+            m_count_peptides_phs += (m_mapping_phs.get(geneID).addPeptide(coordwrapper, sequence, tag, sigPSMs, genes, ofstream, quant, transcriptsEntry, isVariant) != 0) ? 0 : 1;
         }
     }
 

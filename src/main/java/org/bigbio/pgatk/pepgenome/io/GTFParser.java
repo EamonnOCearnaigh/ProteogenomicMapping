@@ -122,7 +122,7 @@ public class GTFParser {
             tokens = new ArrayList<>(Arrays.asList(Utils.tokenize(line, "\t")));
 
             if (is_next_gene(tokens)) {
-                Assembly assemtemp = mapping.add_gene_from_gtf(line);
+                Assembly assemtemp = mapping.add_gene_from_annotation(line);
                 if (assem == Assembly.none) {
                     if (assemtemp == Assembly.patchhaploscaff) {
                         assem = assemtemp;

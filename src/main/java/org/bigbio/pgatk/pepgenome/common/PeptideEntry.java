@@ -23,40 +23,57 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
 
     private static final long serialVersionUID = -3518477125981077637L;
 
+    // TODO ||FIELD: Peptide sequence||
     //holds the peptide sequence.
     private String pSequence;
 
+    // TODO ||FIELD: Number of found transcripts||
     //number of found transcripts.
     private int numTranscripts;
 
+    // TODO ||FIELD: geneUnique (peptide unique to one gene)||
     //is the peptide unique to one gene?
     private boolean geneUnique;
 
+    // TODO ||FIELD: transcriptUnique||
     //is the peptide unique to one transcript?
     private boolean transcriptUnique;
 
+    // TODO ||**NEW** FIELD: variant||
+    //is the peptide a variant?
+    private boolean variant;
+
+    // TODO ||FIELD: Peptide coordinates||
     //set of coordinates.
     private TreeSet<PeptideCoordinates> pepCoordinates = new TreeSet<>(new PeptidecoordsPCompare());
 
+    // TODO ||FIELD: tissueTags||
     //set of tissues.
     private Map<String, Tuple<ArrayList<Integer>, ArrayList<Double>>> tissueTags = new TreeMap<>();
 
+    // TODO ||FIELD: Lowest startcoord of peptides with same sequence||
     //lowest startcoord of peptides that share the same sequence.
     private int startCoord;
 
+    // TODO ||FIELD: Highest endcoord of peptides with same sequence||
     //highest endcoord of peptides that share the same sequence.
     private int endCoord;
 
+    // TODO ||FIELD: Associated gene||
     //pointer to the associated gene
     private GeneEntry associatedGene;
 
+    // TODO ||FIELD: Map of PTMs for peptide||
     //this map holds the different PTMs for a peptide.
     private Map<String, Map<String, PTMEntry>> pepForms = new TreeMap<>();
 
+    // TODO ||FIELD: Set of transcriptIDs||
     private Set<String> transcriptIds = new TreeSet<>();
 
+    // TODO ||FIELD: Set of exonIDs||
     private Set<String> exonIds = new TreeSet<>();
 
+    // TODO ||compareTo(PeptideEntry o) - Compare coords.||
     @Override
     public int compareTo(PeptideEntry o) {
         if (lessThan(o)) {
@@ -67,16 +84,19 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
         return 0;
     }
 
-    public PeptideEntry(GeneEntry associatedgene) {
+    // TODO ||PeptideEntry(GeneEntry associatedGene, boolean isVariant)||
+    public PeptideEntry(GeneEntry associatedGene, boolean isVariant) {
         this.pSequence = "";
         this.numTranscripts = 0;
         this.geneUnique = true;
         this.transcriptUnique = true;
         this.startCoord = 0;
         this.endCoord = 0;
-        this.associatedGene = associatedgene;
+        this.associatedGene = associatedGene;
+        this.variant = isVariant;
     }
 
+    // TODO ||ptmSet(String sequence) -Generates map to hold PTM data.||
     //generates a map that holds all PTMs in the given sequence.
     private static Map<String, PTMEntry> ptmSet(String sequence) {
         Map<String, PTMEntry> map = new TreeMap<>();
@@ -105,6 +125,7 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
         return map;
     }
 
+    // TODO ||lessThan(PeptideEntry rhs)||
     //comparator to check if one PeptideEntry is smaller than another one.
     //returns true if the startcoordinate are smaller than rhs' startcoordinate
     //otherwise returns true if endcoordinate is smaller than rhs' endcoordinate
@@ -127,6 +148,7 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
         return to_gtf(source, System.out, true);
     }
 
+    // TODO ||to_gtf(String source, OutputStream os, boolean chrincluded)||
     //generates a string in the gtf format and writes it to the specified ostream.
     public final OutputStream to_gtf(String source, OutputStream os, boolean chrincluded) throws Exception {
         String sequence_add = "";
@@ -213,6 +235,7 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
         return to_bed(System.out, false, true);
     }
 
+    //TODO ||BED FILE - Writing output (inc. colour)||
     //generates a bed line and writes it to the specified ostream.
     public final OutputStream to_bed(OutputStream os, boolean noptm, boolean chrincluded) throws Exception {
         for (PeptideCoordinates coord : pepCoordinates) {
@@ -234,7 +257,9 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
                 exon_starts.append(exon_start);
                 exon_lengths.append(exon_length);
             }
+            //TODO ||EDITED: Change colour of variant peptides here (BED)||
             String colour = "128,128,128";
+
 
             if (!noptm) {
                 if (geneUnique && !transcriptUnique) {
@@ -242,6 +267,18 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
                 } else if (geneUnique && transcriptUnique) {
                     colour = "204,0,0";
                 }
+            }
+
+            // TODO ||EDITED: Variant colour overrides the above||
+            // More efficient/better way to do this?
+
+            if (variant) {
+                colour = "0,255,255";
+                System.out.println("Variant coloured");
+                System.out.println("Sequnce: "+pSequence);
+            }
+            else {
+                //System.out.println("Not variant");
             }
 
             os.write((colour + "\t" + exon_count + "\t" + exon_lengths + "\t" + exon_starts + "\n").getBytes());
@@ -476,8 +513,9 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
         return coordMap;
     }
 
+    // TODO ||add_peptide(CoordinateWrapper coordwrapper, String sequence, String ptmSequence, String tag, int sigPSMs, TranscriptsT transcripts, int genes, FileOutputStream ofstream, double quant) - Not yet found||
     //adds a peptide. this function is used if this specific peptide has not yet been found. it will also find the peptides genomic coordinates.
-    public final void add_peptide(CoordinateWrapper coordwrapper, String sequence, String ptmSequence, String tag, int sigPSMs, TranscriptsT transcripts, int genes, FileOutputStream ofstream, double quant) {
+    public final void add_peptide(CoordinateWrapper coordwrapper, String sequence, String ptmSequence, String tag, int sigPSMs, TranscriptsT transcripts, int genes, FileOutputStream ofstream, double quant, boolean isVariant) {
         if (pSequence.isEmpty()) {
             pSequence = sequence;
         }
@@ -490,6 +528,15 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
         }
         if (transcripts.getM_entries().size() > 1) {
             transcriptUnique = false;
+        }
+
+        //TODO ||Edited||
+        if (isVariant) {
+            System.out.println("Peptide Entry.add_peptide: isVariant true");
+            variant = true;
+        } else {
+            System.out.println("Peptide Entry.add_peptide: isVariant false");
+            variant = false;
         }
 
         add_tags(tag, sigPSMs, quant);
@@ -528,14 +575,24 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
         add_ptm(ptmSequence);
     }
 
+    // TODO ||add_peptide(String ptmsequence, String tag, int sigPSMs, double quant) - Has appeared before||
     //adds a peptide. this function is used if a peptide has appeared before.
-    public final void add_peptide(String ptmsequence, String tag, int sigPSMs, double quant) {
+    public final void add_peptide(String ptmsequence, String tag, int sigPSMs, double quant, boolean isVariant) {
         if (!pSequence.equals(ptmsequence)) {
             add_ptm(ptmsequence);
         }
         add_tags(tag, sigPSMs, quant);
+        //TODO ||Edited||
+        variant = isVariant;
+        // TODO ||Remove testing||
+        if (variant) {
+            System.out.println("PeptideEntry.add_peptide (Peptide has appeared before) - variant TRUE");
+        } else {
+            System.out.println("PeptideEntry.add_peptide (Peptide has appeared before) - variant FALSE");
+        }
     }
 
+    // TODO ||transcriptids_to_string()||
     private String transcriptids_to_string() {
         StringBuilder transcriptid_string = new StringBuilder();
         for (String m_transcriptid : transcriptIds) {
@@ -547,6 +604,7 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
         return transcriptid_string.toString();
     }
 
+    // TODO ||exonids_to_string()||
     private String exonids_to_string() {
         StringBuilder exonid_string = new StringBuilder();
         for (String it : exonIds) {
@@ -558,6 +616,7 @@ public class PeptideEntry implements Comparable<PeptideEntry>, Serializable {
         return exonid_string.toString();
     }
 
+    // TODO ||noPTM()||
     //checks whether the peptide entry has a modified form. Returns true if pepForms only contains peptide without PTM (size==1)
     public final boolean noPTM() {
         return pepForms.containsKey(pSequence);

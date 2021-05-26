@@ -15,24 +15,30 @@ import java.util.TreeMap;
 public class CoordinateWrapper implements Serializable {
 
     private static final long serialVersionUID = -5604555402952311335L;
+    // TODO ||FIELD: Map<String, ProteinEntry> m_map holds fasta headers and ProteinEntry objects||
     //holds fasta headers and the associated ProteinEntry objects.
     private Map<String, ProteinEntry> m_map;
 
+    // TODO ||FIELD: ExistingPeptides m_existing_peptides||
     //pointer to the existing_peptides
     //common.ExistingPeptides holds information about previously read peptides.
     private ExistingPeptides m_existing_peptides;
 
+    // TODO ||FIELD: int totalAACount||
     private int totalAACount = 0;
 
+    // TODO ||Coordwrapper fields are a treemap and ExistingPeptides object||
     public CoordinateWrapper() {
         this.m_map = new TreeMap<>();
         this.m_existing_peptides = new ExistingPeptides();
     }
 
+    // TODO ||size()||
     public final int size() {
         return m_map.size();
     }
 
+    // TODO ||lookup_entry(String transcriptId)||
     /**
      * Looks up a ProteinEntry given a fasta header and returns a reference
      * to that entry.
@@ -43,6 +49,7 @@ public class CoordinateWrapper implements Serializable {
         return m_map.computeIfAbsent(transcriptId, k -> new ProteinEntry());
     }
 
+    // TODO ||add(ProteinEntry entry)||
     /**
      * Adds a ProteinEntry.
      * @param entry
@@ -51,6 +58,7 @@ public class CoordinateWrapper implements Serializable {
         m_map.put(entry.get_transcript_id(), entry);
     }
 
+    // TODO ||read_fasta_file(String file)||
     // TODO Note: Made edits within FastaParser, ProteinEntry.  FastaEntry did not require changes.
     //reads and parses a fasta file and adds all of them to the CoordinateWrapper.
     public final void read_fasta_file(String file) throws Exception {
@@ -69,6 +77,7 @@ public class CoordinateWrapper implements Serializable {
         fastaParserSingleton.close();
     }
 
+    // TODO ||add_all_proteins_to_kmer_map(IKmerMap kmerMap)||
     //adds all previously added proteins to the given KmerTreeMap.
     public final void add_all_proteins_to_kmer_map(IKmerMap kmerMap) {
         for (ProteinEntry entry : m_map.values()) {
@@ -76,6 +85,7 @@ public class CoordinateWrapper implements Serializable {
         }
     }
 
+    // TODO ||add_to_existing_peptides()||
     /**
      *  Adds a peptide to the existing peptides list. this is used in the TabInputPeptideFileParser so
      *  that already found peptides dont have to be mapped again.
@@ -87,17 +97,20 @@ public class CoordinateWrapper implements Serializable {
         m_existing_peptides.add(peptideSequence, peptideEntry);
     }
 
+    // TODO ||get_Existing_peptides_at()||
     //gets a reference to the already existing peptides
     //used for adding PTMs and tags.
     public final ArrayList<PeptideEntry> get_existing_peptides_at(String peptideSequence) {
         return m_existing_peptides.getItem(peptideSequence);
     }
 
+    // TODO ||isPeptidePresent()||
     //returns true if the peptide was found before.
     public final boolean isPeptidePresent(String peptideSequence) {
         return m_existing_peptides.contains(peptideSequence);
     }
 
+    // TODO ||getTotalAACount()||
     /**
      * Return the protein size sum of all proteins in the fasta file
      * @return total AA count
@@ -106,6 +119,7 @@ public class CoordinateWrapper implements Serializable {
         return totalAACount;
     }
 
+    // TODO ||getNumberOfProteins()||
     /**
      * Get the number of proteins
      * @return Number of proteins

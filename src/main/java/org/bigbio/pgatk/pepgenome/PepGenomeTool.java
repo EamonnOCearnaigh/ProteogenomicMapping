@@ -80,6 +80,8 @@ public class PepGenomeTool {
     private static final String ARG_INPUT_FORMAT = "inf";
     private static final String ARG_SPARK_MASTER = "spark_master";
     private static final String ARG_GENOME_FASTA = "genome";
+    // TODO: ||Added peptide filter argument||
+    private static final String ARG_PEPTIDE_FILTER = "filter"; // Addition - Peptide Filter
 
     // DEFAULT values
     private static boolean mergeFlag = false;
@@ -91,8 +93,10 @@ public class PepGenomeTool {
     private static boolean chrincluded = false;
     private static boolean inMemory = true;
     private static INPUT_FILE_FORMAT fileFormat = INPUT_FILE_FORMAT.TAB;
-    //TODO Edited - Added ExonCoords default value
+    //TODO Edited - Added useExonCoords default value
     public static boolean useExonCoords = false;
+    //TODO ||Edited - Added usePeptideFilter default value||
+    public static boolean usePeptideFilter = false;
 
     // TODO Edited - Added map of transcript ID to CDS offset.
     public static HashMap<String, Integer> m_translation_offset_map = new HashMap<>();
@@ -123,7 +127,8 @@ public class PepGenomeTool {
                 .addOption(Option.builder(ARG_INMEMORY).hasArg(true).desc("Compute the kmer algorithm in memory or using database algorithm (default 0, database 1)").build())
                 .addOption(Option.builder(ARG_INPUT_FORMAT).hasArg(true).desc("Format of the input file (mztab, mzid, or tsv). (default tsv) ").build())
                 .addOption(Option.builder(ARG_SPARK_MASTER).hasArg(true).desc("Spark master String. i.e., to run locally use: local[*]").build())
-                .addOption(Option.builder(ARG_HELP).hasArg(false).desc("Print this help & exit").build());
+                .addOption(Option.builder(ARG_HELP).hasArg(false).desc("Print this help & exit").build())
+                .addOption(Option.builder(ARG_PEPTIDE_FILTER).hasArg(true).desc("2021 Expansion: Peptide filter mode.").build());
 
 
         // PARSE COMMAND INPUT
@@ -141,7 +146,7 @@ public class PepGenomeTool {
 
 
         // TODO Edit (Working as expected)
-        // Following selection block replaced with two new blocks.
+        // Following selection replaced with two new selections.
         /*
         if (!cmd.hasOption(ARG_FASTA) || !cmd.hasOption(ARG_ANN) || !cmd.hasOption(ARG_IN)) {
             log.info("*** Missing mandatory parameters: -fasta, -in and -ann ***");
@@ -172,6 +177,11 @@ public class PepGenomeTool {
         //TODO Edit - Added exon coords argument check
         if (cmd.hasOption(ARG_EXON_COORDS)) {
             useExonCoords = true;
+        }
+
+        //TODO ||Edit - Added peptide filter argument check||
+        if (cmd.hasOption(ARG_PEPTIDE_FILTER)) {
+            usePeptideFilter = true;
         }
 
         SparkConfig sparkConfig = SparkConfig.getInstance();
@@ -207,7 +217,7 @@ public class PepGenomeTool {
             log.info(" *** Note: -ann accepts both .gtf and .gff3 ***");
             Utils.printHelpAndExitProgram(options, true, GENOME_MAPPER_EXIT_INVALID_ARG);
         }
-        //End of edit
+        //End of this edit
 
 
         if (fastaFilePath == null || !(fastaFilePath.endsWith(".fasta") || fastaFilePath.endsWith(".fa"))) {
@@ -266,6 +276,7 @@ public class PepGenomeTool {
             source = sourceParam;
         }
 
+        //TODO ||Mismatch input parameter section||
         String mmParam = cmd.getOptionValue(ARG_MM);
         if (mmParam != null) {
             int par = -1;
@@ -311,7 +322,7 @@ public class PepGenomeTool {
 
         //files cannot be merged if there is only one input file
         if (mergeFlag && peptideInputFilePaths.length == 1) {
-            System.err.println("cannot merge output files for one input file, default (-merge false) assumed");
+            System.err.println("Cannot merge output files for one input file, default (-merge false) assumed");
             mergeFlag = false;
         }
 
@@ -329,11 +340,6 @@ public class PepGenomeTool {
             log.info("Reading FASTA: " + fastaFilePath);
             CoordinateWrapper coordinate_wrapper = new CoordinateWrapper();
             coordinate_wrapper.read_fasta_file(fastaFilePath);
-
-            // TODO Remove testing
-            //System.out.println(m_offsetMap.size());
-            //System.out.println(m_offsetMap.keySet().toString());
-            //System.out.println(m_offsetMap.toString());
 
             log.info("Fasta done: " + coordinate_wrapper.size() + " proteins read.");
             log.info("Building KmerTreeMap...");
@@ -381,14 +387,18 @@ public class PepGenomeTool {
                 filename_mm_postfix = ss.toString();
             }
 
+            // TODO ||PEPTIDE Section||
+            System.out.println("---PEPTIDE LOOP BEGINS---");
             for (String peptideInputFilePath : peptideInputFilePaths) {
                 log.info("Computing genomic coordinates for: " + peptideInputFilePath);
                 String final_peptide_path_results = FilenameUtils.removeExtension(peptideInputFilePath);
 
+                //TODO ||Cleanup: Remove commented out lines from before expansions?||
 //                ArrayList<String> tokens = new ArrayList<>(Arrays.asList(Utils.tokenize(curr_input_file_path, ".")));
 
                 String path6 = final_peptide_path_results + "_unmapped.txt";
 
+                // TODO ||Determine file format and read file using parser (Tab, MzTab, PeptideAtlas)||
                 if (fileFormat == INPUT_FILE_FORMAT.MZTAB)
                     new MzTabInputPeptideFileParser().read(peptideInputFilePath, coordinate_wrapper, mapped_peptides, path6, kmer_map);
                 else if (fileFormat == INPUT_FILE_FORMAT.PEPTIDEATLAS)
@@ -396,8 +406,8 @@ public class PepGenomeTool {
                 else
                     new TabInputPeptideFileParser().read(peptideInputFilePath, coordinate_wrapper, mapped_peptides, path6, kmer_map);
 
-                log.info("Results done! (" + peptideInputFilePath + ")");
-                log.info("writing output files");
+                log.info("Results complete. (" + peptideInputFilePath + ")");
+                log.info("Writing output files.");
 
                 if (!mergeFlag) {
                     //the gtf overwrites the input gtf if they are in the same folder
@@ -425,6 +435,8 @@ public class PepGenomeTool {
                         mapped_peptides.to_gtf(path9, source, assem);
                     }
                     if (bedOutFlag) {
+                        //TODO ||mapped_peptides.to_bed(...) - Remove testing||
+                        System.out.println("mapped_peptides.to_bed(...) - Unmerged, chrincluded");
                         mapped_peptides.to_bed(path5, Assembly.primary, chrincluded);
                         mapped_peptides.to_bed(path10, assem, chrincluded);
                     }
